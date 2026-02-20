@@ -2,6 +2,9 @@
 
 Integration with Canvas LMS API to aggregate assignments, events, and announcements into more visually appelaing format.
 
+> [!WARNING]
+> Need to be using a UNIX based system with chromium installed because script disables CORS on chromium to make sure the API calls work correctly
+
 ## Script Usage
 run the script with `./start-dashboard.sh`. This should create a server in the background that hosts the app locally. To stop the server, run `./start-dashboard.sh stop`.
 
