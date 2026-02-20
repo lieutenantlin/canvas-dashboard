@@ -2,7 +2,7 @@
 
 # canvas-mono
 
-Integration with Canvas LMS API to aggregate assignments, events, and announcements into more visually appelaing format.
+Integration with Canvas LMS API to aggregate assignments, events, and announcements into more visually appealing format.
 
 > [!WARNING]
 > Need to be using a UNIX based system with chromium installed because script disables CORS on chromium to make sure the API calls work correctly
@@ -12,7 +12,7 @@ run the script with `./start-dashboard.sh`. This should create a server in the b
 
 ## App Usage
 
-Add your school's canvas domain and input Canvas access token. If you do not have a Canvas access token, go to Account -> Settings -> New Access Token. Set the token to expire at the latest (~130 days).
+Add your school's canvas domain and input your Canvas access token. If you do not have a Canvas access token, go to Account -> Settings -> New Access Token. Set the token to expire at the latest (~130 days).
 
 ## License
 
