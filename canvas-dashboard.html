@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CANVAS // TERMINAL DASHBOARD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
+  :root[data-theme="dark"] {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #1a1a1a;
+    --border: #2a2a2a;
+    --border2: #333333;
+    --text: #e8e8e8;
+    --text2: #888888;
+    --text3: #555555;
+    --accent: #ffffff;
+    --accent2: #cccccc;
+    --glow: rgba(255,255,255,0.05);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f5f5;
+    --bg2: #ebebeb;
+    --bg3: #e0e0e0;
+    --border: #cccccc;
+    --border2: #bbbbbb;
+    --text: #111111;
+    --text2: #555555;
+    --text3: #999999;
+    --accent: #000000;
+    --accent2: #333333;
+    --glow: rgba(0,0,0,0.05);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* Scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .ascii-logo {
+    font-size: 8px;
+    line-height: 1.1;
+    color: var(--text2);
+    letter-spacing: 0;
+    white-space: pre;
+    opacity: 0;
+    animation: fadeIn 1s 0.5s forwards;
+  }
+
+  .logo-text {
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: slideIn 0.8s 1s forwards;
+  }
+
+  .logo-text span {
+    color: var(--text);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    animation: fadeIn 0.8s 1.2s forwards;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text2);
+    animation: blink 2s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .status-text {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .toggle-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--glow);
+  }
+
+  /* API KEY SETUP */
+  .setup-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    opacity: 0;
+    animation: slideDown 0.6s 1.5s forwards;
+  }
+
+  .setup-label {
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .setup-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 6px 12px;
+    outline: none;
+    letter-spacing: 1px;
+    transition: border-color 0.2s;
+  }
+  .setup-input:focus { border-color: var(--accent2); }
+  .setup-input::placeholder { color: var(--text3); }
+
+  .domain-input {
+    width: 240px;
+  }
+
+  .fetch-btn {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: var(--bg);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 7px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .fetch-btn:hover {
+    background: transparent;
+    color: var(--accent);
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ASCII HERO */
+  .ascii-hero {
+    text-align: center;
+    padding: 40px 0 32px;
+    opacity: 0;
+    animation: fadeIn 1s 0.8s forwards;
+  }
+
+  .ascii-hero pre {
+    font-size: 9px;
+    line-height: 1.15;
+    color: var(--text3);
+    letter-spacing: 1px;
+    white-space: pre;
+    display: inline-block;
+    position: relative;
+  }
+
+  .hero-sub {
+    font-size: 10px;
+    letter-spacing: 6px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-top: 16px;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+    margin-left: auto;
+    margin-right: auto;
+    animation: typewriter 2s 1.5s forwards;
+  }
+
+  @keyframes typewriter {
+    to { width: 340px; }
+  }
+
+  /* TERMINAL LOG */
+  .terminal-log {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    font-size: 11px;
+    min-height: 60px;
+    opacity: 0;
+    animation: fadeIn 0.5s 2s forwards;
+  }
+
+  .log-line {
+    color: var(--text2);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    opacity: 0;
+  }
+  .log-line.active { opacity: 1; }
+  .log-line .prompt { color: var(--text3); margin-right: 8px; }
+  .log-line.ok .tag { color: var(--text); }
+  .log-line.err .tag { color: var(--text2); }
+
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 11px;
+    background: var(--text2);
+    animation: blink 1s infinite;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: slideUp 0.6s 2.2s forwards;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    padding: 24px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -2px;
+    display: block;
+    counter-reset: num;
+    animation: countUp 1s 2.5s both;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* GRID */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    opacity: 0;
+    animation: slideUp 0.6s 2.4s forwards;
+  }
+
+  .panel {
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-title {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+
+  .panel-title .ascii-icon {
+    color: var(--text2);
+    margin-right: 8px;
+  }
+
+  .panel-count {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    background: var(--bg3);
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 500px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+
+  .item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: default;
+    transition: background 0.15s;
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  .item:hover { background: var(--bg3); }
+
+  .item-meta {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .item-course {
+    color: var(--text2);
+    border: 1px solid var(--border2);
+    padding: 1px 6px;
+    font-size: 8px;
+  }
+
+  .item-title {
+    font-size: 12px;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+
+  .item-body {
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+  }
+
+  .due-tag {
+    font-size: 8px;
+    letter-spacing: 2px;
+    padding: 2px 8px;
+    background: var(--bg3);
+    color: var(--text2);
+    border: 1px solid var(--border2);
+    margin-top: 8px;
+    display: inline-block;
+  }
+  .due-tag.urgent { border-color: var(--text2); color: var(--text); }
+
+  /* EXPANDABLE ANNOUNCEMENTS */
+  .item.expandable { cursor: pointer; }
+  .item-preview {
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+  }
+  .item-full {
+    display: none;
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.2s;
+  }
+  .item-full.open {
+    display: block;
+    max-height: 600px;
+  }
+  .item-full p { margin-bottom: 8px; }
+  .item-full p:last-child { margin-bottom: 0; }
+  .expand-toggle {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+  }
+  .expand-toggle .arrow { transition: transform 0.3s; display: inline-block; }
+  .item.expanded .expand-toggle { color: var(--text2); }
+  .item.expanded .expand-toggle .arrow { transform: rotate(90deg); }
+
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text3);
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  .empty-ascii {
+    font-size: 9px;
+    line-height: 1.3;
+    margin-bottom: 16px;
+    color: var(--text3);
+    white-space: pre;
+    display: inline-block;
+  }
+
+  .loading-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text3);
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  .loading-bar {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    left: -40%;
+    top: 0;
+    width: 40%;
+    height: 100%;
+    background: var(--text2);
+    animation: loading 1.2s infinite ease-in-out;
+  }
+  @keyframes loading {
+    to { left: 100%; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .item-animate {
+    animation: itemIn 0.4s forwards;
+  }
+  @keyframes itemIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* FOOTER */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .main { padding: 16px; }
+    .header { padding: 16px; }
+    .setup-bar { flex-wrap: wrap; }
+    .hero-sub { animation: none; width: auto; font-size: 8px; letter-spacing: 3px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo-area">
+    <pre class="ascii-logo">╔═╗┌─┐┌┐┌┬  ┬┌─┐┌─┐
+║  ├─┤│││└┐┌┘├─┤└─┐
+╚═╝┴ ┴┘└┘ └┘ ┴ ┴└─┘</pre>
+    <div class="logo-text"><span>TERMINAL</span> // DASHBOARD v1.0</div>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="status-text" id="connectionStatus">OFFLINE</span>
+    <button class="toggle-btn" onclick="toggleTheme()" id="themeBtn">[ LIGHT ]</button>
+  </div>
+</header>
+
+<div class="setup-bar">
+  <span class="setup-label">&gt;&gt; CONFIG</span>
+  <input class="setup-input domain-input" id="domainInput" placeholder="your-school.instructure.com" type="text">
+  <input class="setup-input" id="tokenInput" placeholder="ACCESS TOKEN (Settings → New Access Token)" type="password" style="flex:2">
+  <button class="fetch-btn" onclick="fetchAll()">[ FETCH DATA ]</button>
+</div>
+
+<main class="main">
+
+  <!-- ASCII HERO -->
+  <div class="ascii-hero">
+    <pre>
+ ██████╗  █████╗ ███████╗██╗  ██╗██████╗  ██████╗  █████╗ ██████╗ ██████╗
+ ██╔══██╗██╔══██╗██╔════╝██║  ██║██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██╔══██╗
+ ██║  ██║███████║███████╗███████║██████╔╝██║   ██║███████║██████╔╝██║  ██║
+ ██║  ██║██╔══██║╚════██║██╔══██║██╔══██╗██║   ██║██╔══██║██╔══██╗██║  ██║
+ ██████╔╝██║  ██║███████║██║  ██║██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝
+ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝</pre>
+    <div class="hero-sub">// ACADEMIC INTELLIGENCE TERMINAL //</div>
+  </div>
+
+  <!-- TERMINAL LOG -->
+  <div class="terminal-log" id="termLog">
+    <div class="log-line active"><span class="prompt">[SYS]</span> Canvas Terminal Dashboard initialized<span class="cursor"></span></div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <span class="stat-num" id="statEvents">—</span>
+      <span class="stat-label">[01] // Events</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statAnnouncements">—</span>
+      <span class="stat-label">[02] // Announcements</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statAssignments">—</span>
+      <span class="stat-label">[03] // Assignments</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statCourses">—</span>
+      <span class="stat-label">[04] // Courses</span>
+    </div>
+  </div>
+
+  <!-- DATA GRID -->
+  <div class="grid">
+
+    <!-- EVENTS -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title"><span class="ascii-icon">◈</span> CALENDAR EVENTS</span>
+        <span class="panel-count" id="eventsCount">—</span>
+      </div>
+      <div class="panel-body" id="eventsPanel">
+        <div class="empty-state">
+          <pre class="empty-ascii">┌─────────────┐
+│  NO DATA    │
+│   ╔═══╗     │
+│   ║   ║     │
+│   ╚═══╝     │
+└─────────────┘</pre>
+          <div>AWAITING INPUT</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANNOUNCEMENTS -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title"><span class="ascii-icon">◎</span> ANNOUNCEMENTS</span>
+        <span class="panel-count" id="announcementsCount">—</span>
+      </div>
+      <div class="panel-body" id="announcementsPanel">
+        <div class="empty-state">
+          <pre class="empty-ascii">┌─────────────┐
+│  NO DATA    │
+│   ╔═══╗     │
+│   ║ ! ║     │
+│   ╚═══╝     │
+└─────────────┘</pre>
+          <div>AWAITING INPUT</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSIGNMENTS -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title"><span class="ascii-icon">◉</span> ASSIGNMENTS</span>
+        <span class="panel-count" id="assignmentsCount">—</span>
+      </div>
+      <div class="panel-body" id="assignmentsPanel">
+        <div class="empty-state">
+          <pre class="empty-ascii">┌─────────────┐
+│  NO DATA    │
+│   ╔═══╗     │
+│   ║ ✓ ║     │
+│   ╚═══╝     │
+└─────────────┘</pre>
+          <div>AWAITING INPUT</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <span>CANVAS // TERMINAL DASHBOARD</span>
+  <span id="lastUpdated">LAST SYNC: —</span>
+  <span>© 2026</span>
+</footer>
+
+<script>
+// ─── THEME TOGGLE ───────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  if (html.dataset.theme === 'dark') {
+    html.dataset.theme = 'light';
+    btn.textContent = '[ DARK ]';
+  } else {
+    html.dataset.theme = 'dark';
+    btn.textContent = '[ LIGHT ]';
+  }
+}
+
+// ─── TERMINAL LOG ────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const log = document.getElementById('termLog');
+  const line = document.createElement('div');
+  line.className = `log-line active ${type}`;
+  const now = new Date().toLocaleTimeString('en-US', {hour12: false});
+  const tag = type === 'ok' ? '[ OK ]' : type === 'err' ? '[FAIL]' : '[ >> ]';
+  line.innerHTML = `<span class="prompt">${now}</span><span class="tag">${tag}</span> ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+  // Keep last 8 lines
+  while (log.children.length > 8) log.removeChild(log.firstChild);
+}
+
+// ─── CANVAS API HELPERS ──────────────────────────────────────────────────────
+function getConfig() {
+  const domain = document.getElementById('domainInput').value.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const token = document.getElementById('tokenInput').value.trim();
+  return { domain, token };
+}
+
+async function apiGet(path) {
+  const { domain, token } = getConfig();
+  const url = `https://${domain}/api/v1${path}`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Paginate through all results
+async function apiGetAll(path) {
+  const { domain, token } = getConfig();
+  let url = `https://${domain}/api/v1${path}`;
+  const results = [];
+  while (url) {
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data)) results.push(...data);
+    // Parse Link header for next page
+    const link = res.headers.get('Link') || '';
+    const nextMatch = link.match(/<([^>]+)>;\s*rel="next"/);
+    url = nextMatch ? nextMatch[1] : null;
+  }
+  return results;
+}
+
+// ─── RENDER HELPERS ──────────────────────────────────────────────────────────
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+}
+function daysUntil(d) {
+  if (!d) return null;
+  return Math.ceil((new Date(d) - Date.now()) / 86400000);
+}
+function stripHtml(html) {
+  if (!html) return '';
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent.slice(0, 120) + (div.textContent.length > 120 ? '…' : '');
+}
+
+function animateItems(container) {
+  const items = container.querySelectorAll('.item');
+  items.forEach((item, i) => {
+    setTimeout(() => item.classList.add('item-animate'), i * 60);
+  });
+}
+
+// ─── RENDER FUNCTIONS ────────────────────────────────────────────────────────
+function renderEvents(events) {
+  const panel = document.getElementById('eventsPanel');
+  if (!events.length) {
+    panel.innerHTML = `<div class="empty-state"><pre class="empty-ascii">┌─────────────┐
+│  CLEAR      │
+│   ╔═══╗     │
+│   ║ ✓ ║     │
+│   ╚═══╝     │
+└─────────────┘</pre><div>NO EVENTS FOUND</div></div>`;
+    return;
+  }
+  panel.innerHTML = events.slice(0, 30).map(e => `
+    <div class="item">
+      <div class="item-meta">
+        <span>${formatDate(e.start_at || e.created_at)}</span>
+        ${e.context_name ? `<span class="item-course">${e.context_name.slice(0,20)}</span>` : ''}
+      </div>
+      <div class="item-title">${e.title || 'Untitled Event'}</div>
+      ${e.location_name ? `<div class="item-body">◎ ${e.location_name}</div>` : ''}
+      ${e.description ? `<div class="item-body">${stripHtml(e.description)}</div>` : ''}
+    </div>
+  `).join('');
+  animateItems(panel);
+}
+
+function sanitizeHtml(html) {
+  if (!html) return '';
+  // Allow basic tags only, strip scripts/styles
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // Remove script and style tags
+  div.querySelectorAll('script, style, iframe').forEach(el => el.remove());
+  // Clean up links to open in new tab
+  div.querySelectorAll('a').forEach(el => {
+    el.target = '_blank';
+    el.rel = 'noopener noreferrer';
+    el.style.color = 'var(--text2)';
+  });
+  // Style images to fit
+  div.querySelectorAll('img').forEach(el => {
+    el.style.maxWidth = '100%';
+    el.style.height = 'auto';
+    el.style.marginTop = '8px';
+  });
+  return div.innerHTML;
+}
+
+function toggleAnnouncement(el) {
+  const full = el.querySelector('.item-full');
+  const toggle = el.querySelector('.expand-toggle');
+  const isOpen = el.classList.contains('expanded');
+  if (isOpen) {
+    el.classList.remove('expanded');
+    full.classList.remove('open');
+    toggle.querySelector('.label').textContent = '[ EXPAND ]';
+  } else {
+    el.classList.add('expanded');
+    full.classList.add('open');
+    toggle.querySelector('.label').textContent = '[ COLLAPSE ]';
+  }
+}
+
+function renderAnnouncements(announcements) {
+  const panel = document.getElementById('announcementsPanel');
+  if (!announcements.length) {
+    panel.innerHTML = `<div class="empty-state"><div>NO ANNOUNCEMENTS</div></div>`;
+    return;
+  }
+  // Sort by posted_at descending
+  announcements.sort((a, b) => new Date(b.posted_at) - new Date(a.posted_at));
+  panel.innerHTML = announcements.slice(0, 30).map((a, i) => {
+    const preview = stripHtml(a.message);
+    const fullHtml = sanitizeHtml(a.message);
+    const hasMore = (a.message || '').length > 0;
+    return `
+    <div class="item expandable" onclick="toggleAnnouncement(this)">
+      <div class="item-meta">
+        <span>${formatDate(a.posted_at)}</span>
+        ${a.course_id ? `<span class="item-course">COURSE ${a.course_id}</span>` : ''}
+      </div>
+      <div class="item-title">${a.title || 'Untitled'}</div>
+      ${hasMore ? `<div class="item-preview">${preview}</div>
+      <div class="item-full">${fullHtml}</div>
+      <div class="expand-toggle"><span class="arrow">▶</span><span class="label">[ EXPAND ]</span></div>` : ''}
+    </div>
+  `}).join('');
+  animateItems(panel);
+}
+
+function renderAssignments(assignments) {
+  const panel = document.getElementById('assignmentsPanel');
+  // Filter: only today or future (days >= 0), or no due date
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); // Start of today
+  const upcoming = assignments.filter(a => {
+    if (!a.due_at) return true; // No due date — always show
+    return new Date(a.due_at) >= now;
+  });
+  if (!upcoming.length) {
+    panel.innerHTML = `<div class="empty-state">
+      <pre class="empty-ascii">┌─────────────┐
+│  ALL DONE   │
+│   ╔═══╗     │
+│   ║ ✓ ║     │
+│   ╚═══╝     │
+└─────────────┘</pre>
+      <div>NO UPCOMING ASSIGNMENTS</div>
+    </div>`;
+    return;
+  }
+  // Sort by due date ascending
+  upcoming.sort((a, b) => {
+    if (!a.due_at) return 1;
+    if (!b.due_at) return -1;
+    return new Date(a.due_at) - new Date(b.due_at);
+  });
+  panel.innerHTML = upcoming.slice(0, 40).map(a => {
+    const days = daysUntil(a.due_at);
+    const urgent = days !== null && days <= 3;
+    const dueStr = days === null ? 'NO DUE DATE' : days === 0 ? 'DUE TODAY' : `DUE IN ${days}D`;
+    return `
+    <div class="item">
+      <div class="item-meta">
+        <span>${formatDate(a.due_at)}</span>
+        ${a.points_possible != null ? `<span>${a.points_possible} PTS</span>` : ''}
+      </div>
+      <div class="item-title">${a.name || 'Untitled'}</div>
+      ${a.description ? `<div class="item-body">${stripHtml(a.description)}</div>` : ''}
+      <div class="due-tag ${urgent ? 'urgent' : ''}">${dueStr}</div>
+    </div>
+  `}).join('');
+  animateItems(panel);
+}
+
+// ─── LOADING STATES ──────────────────────────────────────────────────────────
+function setLoading(id, label) {
+  document.getElementById(id).innerHTML = `
+    <div class="loading-state">
+      <div>FETCHING ${label}...</div>
+      <div class="loading-bar"></div>
+      <div>PLEASE WAIT</div>
+    </div>`;
+}
+
+// ─── MAIN FETCH ──────────────────────────────────────────────────────────────
+async function fetchAll() {
+  const { domain, token } = getConfig();
+  if (!domain || !token) { log('CONFIG MISSING — enter domain and token', 'err'); return; }
+
+  document.getElementById('connectionStatus').textContent = 'CONNECTING';
+  setLoading('eventsPanel', 'EVENTS');
+  setLoading('announcementsPanel', 'ANNOUNCEMENTS');
+  setLoading('assignmentsPanel', 'ASSIGNMENTS');
+
+  log(`Connecting to ${domain}...`);
+
+  try {
+    // Fetch courses first
+    log('Fetching active courses...');
+    const courses = await apiGetAll('/courses?enrollment_state=active&per_page=50');
+    const activeCourses = courses.filter(c => !c.access_restricted_by_date);
+    const courseIds = activeCourses.map(c => c.id);
+    document.getElementById('statCourses').textContent = activeCourses.length;
+    log(`Found ${activeCourses.length} active courses`, 'ok');
+
+    // Parallel fetches
+    const [events, assignments, ...announcementArrays] = await Promise.all([
+      apiGetAll(`/calendar_events?type=event&context_codes[]=${courseIds.map(id=>`course_${id}`).join('&context_codes[]=')}&per_page=50&start_date=${new Date(Date.now()-7*86400000).toISOString().split('T')[0]}&end_date=${new Date(Date.now()+30*86400000).toISOString().split('T')[0]}`).catch(()=>[]),
+      Promise.all(courseIds.map(id => apiGetAll(`/courses/${id}/assignments?per_page=50`).catch(()=>[]))).then(arrays => arrays.flat()),
+      ...courseIds.map(id => apiGetAll(`/courses/${id}/discussion_topics?only_announcements=true&per_page=20`).catch(()=>[]))
+    ]);
+
+    const announcements = announcementArrays.flat();
+
+    const now = new Date(); now.setHours(0,0,0,0);
+    const upcomingCount = assignments.filter(a => !a.due_at || new Date(a.due_at) >= now).length;
+
+    log(`Events: ${events.length}`, 'ok');
+    log(`Announcements: ${announcements.length}`, 'ok');
+    log(`Assignments (upcoming): ${upcomingCount}`, 'ok');
+
+    document.getElementById('statEvents').textContent = events.length;
+    document.getElementById('statAnnouncements').textContent = announcements.length;
+    document.getElementById('statAssignments').textContent = upcomingCount;
+    document.getElementById('eventsCount').textContent = events.length;
+    document.getElementById('announcementsCount').textContent = announcements.length;
+    document.getElementById('assignmentsCount').textContent = upcomingCount;
+
+    renderEvents(events);
+    renderAnnouncements(announcements);
+    renderAssignments(assignments);
+
+    document.getElementById('connectionStatus').textContent = 'ONLINE';
+    document.getElementById('lastUpdated').textContent = `LAST SYNC: ${new Date().toLocaleTimeString('en-US', {hour12:false})}`;
+    log('All data loaded successfully.', 'ok');
+
+  } catch (e) {
+    log(`ERROR: ${e.message}`, 'err');
+    document.getElementById('connectionStatus').textContent = 'ERROR';
+    ['eventsPanel','announcementsPanel','assignmentsPanel'].forEach(id => {
+      document.getElementById(id).innerHTML = `<div class="empty-state">
+        <pre class="empty-ascii">┌─────────────┐
+│   ERROR!    │
+│   ╔═══╗     │
+│   ║ ✗ ║     │
+│   ╚═══╝     │
+└─────────────┘</pre>
+<div>${e.message}</div>
+<div style="margin-top:8px;font-size:9px">CHECK DOMAIN, TOKEN, AND CORS</div>
+      </div>`;
+    });
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+setTimeout(() => log('Enter your Canvas domain and access token above.'), 2200);
+setTimeout(() => log('Token: Canvas > Account > Settings > New Access Token'), 2600);
+</script>
+</body>
+</html>
